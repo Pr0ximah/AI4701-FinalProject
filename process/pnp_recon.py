@@ -4,18 +4,26 @@
 
 import numpy as np
 import cv2
+from tqdm import tqdm
 
 
-def perform_PnP(featrues1, features2, matches, camera_intrinsic):
+def perform_PnP(
+    featrues1, features2, points3D_ori, matches, camera_intrinsic, recon_valid_points
+):
     index1 = [m.queryIdx for m in matches]
     index2 = [m.trainIdx for m in matches]
-    points1 = np.float32([featrues1[0][i].pt for i in index1])
-    points2 = np.float32([features2[0][i].pt for i in index2])
+    points2D = np.float32([features2[0][i].pt for i in index2])
+
+    # 只选择有效点
+    valid_index_mask = np.isin(index1, recon_valid_points)
+    valid_index_mask2 = np.isin(recon_valid_points, index1)
+    points2D = points2D[valid_index_mask]
+    points3D = points3D_ori[valid_index_mask2]
 
     distCoeffs = np.zeros((4, 1), dtype=np.float32)  # 假设无畸变
 
     # 使用 solvePnP 求解相机姿态
-    success, r, t = cv2.solvePnP(points3D, points2D, cameraMatrix, distCoeffs)
+    success, r, t = cv2.solvePnP(points3D, points2D, camera_intrinsic, distCoeffs)
 
     if not success:
         raise RuntimeError("PnP estimation failed")
@@ -26,20 +34,21 @@ def perform_PnP(featrues1, features2, matches, camera_intrinsic):
     return R, t
 
 
-def perform_PnP_on_all(points3D, keypoints_list, cameraMatrix):
+def perform_PnP_on_all(
+    points3D_ori, features, matches, camera_intrinsic, recon_valid_points, camera_pose
+):
     """
     对所有图像点对执行 PnP。
-
-    参数:
-        points3D (numpy.ndarray): 3D点云数据，形状为(N, 3)。
-        points2D_list (list): 包含多个 2D 图像点的列表，每个元素是一个形状为(N, 2)的 numpy 数组。
-        cameraMatrix (numpy.ndarray): 相机内参矩阵，形状为(3, 3)。
-
-    返回:
-        list: 每个元素是一个元组 (R, t)，表示相机的旋转矩阵和平移向量。
     """
-    results = []
-    for points2D in keypoints_list:
-        R, t = perform_PnP(points3D, points2D[0], cameraMatrix)
+    results = [camera_pose]  # 初始化结果为已有的相机位姿
+    for i, feature_cam in tqdm(enumerate(features[2:])):
+        R, t = perform_PnP(
+            features[0],
+            feature_cam,
+            points3D_ori,
+            matches[(0, i + 2)],
+            camera_intrinsic,
+            recon_valid_points,
+        )
         results.append((R, t))
     return results

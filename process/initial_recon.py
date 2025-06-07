@@ -25,6 +25,9 @@ def init_recon(features1, features2, matches, camera_intrinsic):
     points1 = np.float32([features1[0][i].pt for i in index1])
     points2 = np.float32([features2[0][i].pt for i in index2])
 
+    # 记录场景中有效点的索引
+    recon_valid_points = index1
+
     # 计算基础矩阵
     F, _ = cv2.findFundamentalMat(points1, points2, cv2.FM_RANSAC)
     print(f"基础矩阵:\n{F}\n")
@@ -50,8 +53,9 @@ def init_recon(features1, features2, matches, camera_intrinsic):
     valid_indices = np.where((points3D[2] > 0))[0]
     points3D = points3D.T  # 转置为 Nx3 的格式
     points3D = points3D[valid_indices]
+    recon_valid_points = np.array(recon_valid_points)[valid_indices]
 
-    return points3D, (R, t)
+    return points3D, (R, t), recon_valid_points
 
 
 def visualize_camera_pose_and_pcd(camera_poses, points3D):
