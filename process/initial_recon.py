@@ -67,8 +67,7 @@ def visualize_camera_pose_and_pcd(camera_poses, points3D):
         camera_poses (list): 相机位姿列表，每个元素为(R, t)元组。
         points3D (numpy.ndarray): 3D点云数据，形状为(N, 3)。
     """
-    all_poses = camera_poses
-    # all_poses = [(np.eye(3), np.zeros((3, 1)))] + camera_poses
+    all_poses = [(np.eye(3), np.zeros((3, 1)))] + camera_poses
 
     # 创建相机几何体
     cameras = []
