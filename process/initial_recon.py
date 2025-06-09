@@ -4,6 +4,7 @@
 
 import cv2
 import numpy as np
+import open3d as o3d
 
 
 def init_recon(features1, features2, matches, camera_intrinsic):
@@ -55,7 +56,7 @@ def init_recon(features1, features2, matches, camera_intrinsic):
     points3D = points3D[valid_indices]
     recon_valid_points = np.array(recon_valid_points)[valid_indices]
 
-    return points3D, (R, t), recon_valid_points
+    return points3D, (R, t), recon_valid_points, points1, points2
 
 
 def visualize_camera_pose_and_pcd(camera_poses, points3D):
@@ -66,10 +67,8 @@ def visualize_camera_pose_and_pcd(camera_poses, points3D):
         camera_poses (list): 相机位姿列表，每个元素为(R, t)元组。
         points3D (numpy.ndarray): 3D点云数据，形状为(N, 3)。
     """
-    import open3d as o3d
-
-    # 添加第一个相机的位姿（原点处）
-    all_poses = [(np.eye(3), np.zeros((3, 1)))] + camera_poses
+    all_poses = camera_poses
+    # all_poses = [(np.eye(3), np.zeros((3, 1)))] + camera_poses
 
     # 创建相机几何体
     cameras = []
@@ -122,6 +121,15 @@ def visualize_camera_pose_and_pcd(camera_poses, points3D):
     render_option.point_size = 1.5  # 稍小的点云尺寸
     render_option.mesh_show_wireframe = False
     render_option.mesh_show_back_face = True
+
+    view_control = vis.get_view_control()
+    # 将视野中心设置为原点
+    view_control.set_lookat(np.array([0.0, 0.0, 0.0]))
+    # 将视角对齐到相机0的姿态（朝向-Z，up为-Y）
+    view_control.set_front(np.array([0.0, 0.0, -1.0]))
+    view_control.set_up(np.array([0.0, -1.0, 0.0]))
+    view_control.set_lookat(np.array([0.0, 0.0, 0.0]))
+    view_control.set_zoom(0.7)
 
     # 运行可视化
     vis.run()

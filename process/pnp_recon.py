@@ -31,7 +31,7 @@ def perform_PnP(
     # 将旋转向量转换为旋转矩阵
     R, _ = cv2.Rodrigues(r)
 
-    return R, t
+    return (R, t), points2D, points3D
 
 
 def perform_PnP_on_all(
@@ -40,9 +40,11 @@ def perform_PnP_on_all(
     """
     对所有图像点对执行 PnP。
     """
-    results = [camera_pose]  # 初始化结果为已有的相机位姿
+    camera_poses = [camera_pose]  # 初始化结果为已有的相机位姿
+    points2Ds = []
+    points3Ds = []
     for i, feature_cam in tqdm(enumerate(features[2:])):
-        R, t = perform_PnP(
+        (R, t), points2D, points3D = perform_PnP(
             features[0],
             feature_cam,
             points3D_ori,
@@ -50,5 +52,7 @@ def perform_PnP_on_all(
             camera_intrinsic,
             recon_valid_points,
         )
-        results.append((R, t))
-    return results
+        camera_poses.append((R, t))
+        points2Ds.append(points2D)
+        points3Ds.append(points3D)
+    return camera_poses, points2Ds, points3Ds
