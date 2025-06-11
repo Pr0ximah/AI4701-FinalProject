@@ -9,10 +9,6 @@ def init_recon(features1, features2, camera1, camera2, match):
     points1 = np.float32([features1[0][i].pt for i in index1])
     points2 = np.float32([features2[0][i].pt for i in index2])
 
-    # # 保存匹配点
-    # camera1.keypoints = np.float32([keypoint.pt for keypoint in features1[0]])
-    # camera2.keypoints = np.float32([keypoint.pt for keypoint in features2[0]])
-
     # 基础矩阵
     F, _ = cv2.findFundamentalMat(points1, points2, cv2.FM_RANSAC)
     print(f"基础矩阵:\n{F}\n")

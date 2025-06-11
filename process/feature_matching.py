@@ -69,6 +69,10 @@ def match_all_paires(features_list):
         matches = match_features(features_list[i], features_list[j])
         matches = convert_matches(matches)  # 转换为可序列化格式
         all_matches[(i, j)] = matches
+    for i in tqdm(range(len(features_list))):
+        matches = match_features(features_list[0], features_list[i])
+        matches = convert_matches(matches)  # 转换为可序列化格式
+        all_matches[(0, i)] = matches
     return all_matches
 
 
