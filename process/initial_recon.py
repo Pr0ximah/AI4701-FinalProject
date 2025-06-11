@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 
-def init_recon(features1, features2, camera1, camera2, match):
+def init_recon(features1, features2, camera1, camera2, match, img1, img2):
     # 提取匹配点
     index1 = np.array([m.queryIdx for m in match])
     index2 = np.array([m.trainIdx for m in match])
@@ -42,10 +42,24 @@ def init_recon(features1, features2, camera1, camera2, match):
     index1 = index1[valid_indices]
     index2 = index2[valid_indices]
 
+    # 从图像中提取颜色
+    colors = None
+    if img1 is not None:
+        valid_points1 = points1[valid_indices]
+        colors = np.zeros((len(valid_points1), 3))
+        for i, pt in enumerate(valid_points1):
+            x, y = int(pt[0]), int(pt[1])
+            if 0 <= y < img1.shape[0] and 0 <= x < img1.shape[1]:
+                # 获取BGR颜色并转换为RGB
+                color = img1[y, x][::-1] / 255.0  # BGR->RGB, 归一化到[0,1]
+                colors[i] = color
+            else:
+                colors[i] = [0.5, 0.5, 0.5]  # 默认灰色
+
     # 记录场景中有效点的索引
     camera1.matched_indices_3D = np.arange(len(points3D))
     camera2.matched_indices_3D = np.arange(len(points3D))
     camera1.matched_indices_2D = index1
     camera2.matched_indices_2D = index2
 
-    return points3D
+    return points3D, colors

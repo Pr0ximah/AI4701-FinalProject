@@ -58,13 +58,14 @@ def visualize_point_cloud(pcd, window_name="3D Point Cloud"):
     )
 
 
-def visualize_camera_pose_and_pcd(camera_poses, points3D):
+def visualize_camera_pose_and_pcd(camera_poses, points3D, colors=None):
     """
     可视化相机和点云位姿。
 
     参数:
         camera_poses (list): 相机位姿列表，每个元素为(R, t)元组。
         points3D (numpy.ndarray): 3D点云数据，形状为(N, 3)。
+        colors (numpy.ndarray, optional): 点云颜色数据，形状为(N, 3)，范围[0,1]。
     """
     all_poses = [(np.eye(3), np.zeros((3, 1)))] + camera_poses
 
@@ -98,9 +99,14 @@ def visualize_camera_pose_and_pcd(camera_poses, points3D):
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(points3D)
 
-    # 为点云着色（使用更淡的颜色，突出相机）
-    colors = np.random.uniform(0.3, 0.7, size=(len(points3D), 3))  # 更淡的随机颜色
-    pcd.colors = o3d.utility.Vector3dVector(colors)
+    # 为点云着色
+    if colors is not None:
+        # 使用传入的颜色
+        pcd.colors = o3d.utility.Vector3dVector(colors)
+    else:
+        # 使用更淡的随机颜色，突出相机
+        colors = np.random.uniform(0.3, 0.7, size=(len(points3D), 3))  # 更淡的随机颜色
+        pcd.colors = o3d.utility.Vector3dVector(colors)
 
     # 设置可视化参数
     vis = o3d.visualization.Visualizer()

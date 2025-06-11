@@ -60,8 +60,14 @@ def perform_PnP(points3D, features, cameras, matches):
     return cameras_mod
 
 
-def extend_points_cloud(points3D, cameras, features, matches):
+def extend_points_cloud(points3D, cameras, features, matches, images=None):
     points3D_extended = deepcopy(points3D)
+    colors_extended = None
+
+    # 初始化颜色数组
+    if images is not None:
+        colors_extended = np.ones((len(points3D_extended), 3)) * 0.5  # 默认灰色
+
     for i in tqdm(range(len(cameras) - 2)):
         camera1_indx = i + 1
         camera2_indx = i + 2
@@ -91,6 +97,26 @@ def extend_points_cloud(points3D, cameras, features, matches):
         index1 = index1[valid_indices]
         index2 = index2[valid_indices]
 
+        # 提取颜色
+        colors_new = None
+        if images is not None and len(points3D_new) > 0:
+            img1 = images[camera1_indx]
+            valid_points1 = points1[valid_indices]
+            colors_new = np.zeros((len(valid_points1), 3))
+            for j, pt in enumerate(valid_points1):
+                x, y = int(pt[0]), int(pt[1])
+                if 0 <= y < img1.shape[0] and 0 <= x < img1.shape[1]:
+                    # 获取BGR颜色并转换为RGB
+                    color = img1[y, x][::-1] / 255.0  # BGR->RGB, 归一化到[0,1]
+                    colors_new[j] = color
+                else:
+                    colors_new[j] = [0.5, 0.5, 0.5]  # 默认灰色
+
+        # 合并新点云
         points3D_extended = np.vstack((points3D_extended, points3D_new))
 
-    return points3D_extended
+        # 合并颜色
+        if colors_new is not None and colors_extended is not None:
+            colors_extended = np.vstack((colors_extended, colors_new))
+
+    return points3D_extended, colors_extended
