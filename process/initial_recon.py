@@ -32,8 +32,8 @@ def init_recon(features1, features2, camera1, camera2, match):
 
     # 三角化生成点云
     points4D = cv2.triangulatePoints(
-        camera1.camera_intrinsic @ np.hstack((np.eye(3, 3), np.zeros((3, 1)))),
-        camera1.camera_intrinsic @ np.hstack((R, t)),
+        camera1.camera_intrinsic @ camera1.get_extrinsic(),
+        camera1.camera_intrinsic @ camera2.get_extrinsic(),
         points1.T,
         points2.T,
     )

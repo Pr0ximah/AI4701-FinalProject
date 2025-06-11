@@ -49,17 +49,18 @@ def perform_PnP(points3D, features, cameras, matches, added_camera_num):
             camera2.camera_intrinsic,
             distCoeffs,
         )
+
         R, _ = cv2.Rodrigues(rvec)
         camera2.R = R
         camera2.t = tvec
 
         # 更新点云
-        points1_filtered_pnp = points1[~valid_index_mask_2D_pnp]
+        points1_filtered_pcd = points1[~valid_index_mask_2D_pnp]
         points2_filtered_pcd = points2[~valid_index_mask_2D_pnp]
         points4D = cv2.triangulatePoints(
             camera1.camera_intrinsic @ camera1.get_extrinsic(),
             camera2.camera_intrinsic @ camera2.get_extrinsic(),
-            points1_filtered_pnp.T,
+            points1_filtered_pcd.T,
             points2_filtered_pcd.T,
         )
         points3D_new = points4D[:3] / points4D[3]
