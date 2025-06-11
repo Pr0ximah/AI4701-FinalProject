@@ -1,8 +1,3 @@
-"""
-特征提取模块
-该模块用于从图像中提取特征向量，使用OpenCV的SIFT算法。
-"""
-
 import cv2
 from tqdm import tqdm
 

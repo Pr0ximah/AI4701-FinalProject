@@ -1,7 +1,3 @@
-"""
-根据特征点进行匹配
-"""
-
 import cv2
 from itertools import combinations
 from tqdm import tqdm
@@ -37,6 +33,15 @@ def match_features(features1, features2):
         if m.distance < 0.7 * n.distance:
             good_matches.append(m)
 
+    # 交叉验证匹配
+    matches_rev = flann.knnMatch(descriptors2, descriptors1, k=2)
+    good_rev = []
+    for m, n in matches_rev:
+        if m.distance < 0.7 * n.distance:
+            good_rev.append(m)
+    rev_pairs = set((m.trainIdx, m.queryIdx) for m in good_rev)
+    good_matches = [m for m in good_matches if (m.queryIdx, m.trainIdx) in rev_pairs]
+
     return good_matches
 
 
@@ -50,12 +55,19 @@ def match_all_paires(features_list):
     返回:
         dict: 包含所有图像对的匹配结果，键为图像对的索引元组 (i, j)，值为匹配结果列表。
     """
-    image_pairs = list(combinations(range(len(features_list)), 2))
+    # image_pairs = list(combinations(range(len(features_list)), 2))
+    # all_matches = {}
+    # for i, j in tqdm(image_pairs):
+    #     matches = match_features(features_list[i], features_list[j])
+    #     matches = convert_matches(matches)  # 转换为可序列化格式
+    #     # 存储匹配结果
+    #     all_matches[(i, j)] = matches
+    # return all_matches
     all_matches = {}
-    for i, j in tqdm(image_pairs):
+    for i in tqdm(range(len(features_list) - 1)):
+        j = i + 1
         matches = match_features(features_list[i], features_list[j])
         matches = convert_matches(matches)  # 转换为可序列化格式
-        # 存储匹配结果
         all_matches[(i, j)] = matches
     return all_matches
 

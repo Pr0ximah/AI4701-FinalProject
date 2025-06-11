@@ -1,7 +1,3 @@
-"""
-使用plt展示图像的辅助函数
-"""
-
 import matplotlib.pyplot as plt
 import cv2
 

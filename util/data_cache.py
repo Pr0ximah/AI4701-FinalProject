@@ -1,13 +1,13 @@
-"""
-数据缓存工具类
-用于缓存数据，避免重复计算
-"""
-
 from pathlib import Path
 import pickle
 
 
 class DataCache:
+    """
+    数据缓存工具类
+    用于缓存数据，避免重复计算
+    """
+
     def __init__(self, cache_dir: str):
         self.cache_dir = Path(__file__).parent / cache_dir
         self.cache_dir.mkdir(parents=True, exist_ok=True)
