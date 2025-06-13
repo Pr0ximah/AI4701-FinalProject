@@ -127,13 +127,13 @@ def visualize_camera_pose_and_pcd(camera_poses, points3D, colors=None):
     render_option.mesh_show_back_face = True
 
     view_control = vis.get_view_control()
-    # 将视野中心设置为原点
+    # # 将视野中心设置为原点
     view_control.set_lookat(np.array([0.0, 0.0, 0.0]))
     # 将视角对齐到相机0的姿态（朝向-Z，up为-Y）
     view_control.set_front(np.array([0.0, 0.0, -1.0]))
     view_control.set_up(np.array([0.0, -1.0, 0.0]))
     view_control.set_lookat(np.array([0.0, 0.0, 0.0]))
-    view_control.set_zoom(0.7)
+    view_control.set_zoom(0.1)
 
     # 运行可视化
     vis.run()

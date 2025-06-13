@@ -22,6 +22,11 @@ def perform_PnP(points3D, features, cameras, matches):
         index1 = np.array([m.queryIdx for m in match12])
         index2 = np.array([m.trainIdx for m in match12])
         points2 = np.float32([feature2[0][i].pt for i in index2])
+
+        # 记录特征点
+        camera2.keypoints = np.array([p.pt for p in feature2[0]])
+
+        # 寻找匹配点
         valid_index_mask_2D_pnp = np.isin(index1, camera1.matched_indices_2D)
         valid_index_mask_3D_for_camera1 = np.isin(
             camera1.matched_indices_2D, index1[valid_index_mask_2D_pnp]
@@ -96,6 +101,28 @@ def extend_points_cloud(points3D, cameras, features, matches, images=None):
         points3D_new = points3D_new[valid_indices]
         index1 = index1[valid_indices]
         index2 = index2[valid_indices]
+
+        # 更新相机的匹配索引
+        camera1.matched_indices_2D = np.concatenate(
+            (camera1.matched_indices_2D, index1), axis=0
+        )
+        camera1.matched_indices_3D = np.concatenate(
+            (
+                camera1.matched_indices_3D,
+                np.arange(len(points3D_new)) + len(points3D_extended),
+            ),
+            axis=0,
+        )
+        camera2.matched_indices_2D = np.concatenate(
+            (camera2.matched_indices_2D, index2), axis=0
+        )
+        camera2.matched_indices_3D = np.concatenate(
+            (
+                camera2.matched_indices_3D,
+                np.arange(len(points3D_new)) + len(points3D_extended),
+            ),
+            axis=0,
+        )
 
         # 提取颜色
         colors_new = None

@@ -14,6 +14,7 @@ class Camera:
         self.t = np.zeros((3, 1))
         self.matched_indices_2D = []
         self.matched_indices_3D = []
+        self.keypoints = None
 
     def get_pose(self):
         """
@@ -33,3 +34,12 @@ class Camera:
         """
         extrinsic = np.hstack((self.R, self.t))
         return extrinsic
+
+    def get_filtered_keypoints(self):
+        """
+        获取当前相机的过滤后的关键点。
+
+        返回:
+            numpy.ndarray: 过滤后的关键点，形状为(N, 2), 其中N是关键点的数量。
+        """
+        return self.keypoints[self.matched_indices_2D]
