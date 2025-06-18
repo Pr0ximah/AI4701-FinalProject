@@ -1,7 +1,7 @@
-import numpy as np
 from copy import deepcopy
 import cv2
 from tqdm import tqdm
+import numpy as np
 
 
 def perform_PnP(points3D, features, cameras, matches):
