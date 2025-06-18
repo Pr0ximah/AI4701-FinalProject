@@ -86,7 +86,7 @@ def _bundle_adjustment_sparsity(n_cameras, n_points, camera_indices, point_indic
 
 def perform_BA(points3D, cameras, colors, show, save, save_dir):
     points3D_copy = points3D.copy()
-    cameras_copy = cameras.copy()
+    cameras_copy = cameras.copy()[1:]  # 排除第一个相机
     colors_copy = colors.copy()
     # 初始化优化变量
     camera_params = []
@@ -117,9 +117,10 @@ def perform_BA(points3D, cameras, colors, show, save, save_dir):
     plt.ylabel("residual")
     plt.legend()
     if save and save_dir is not None:
-        plt.savefig(save_dir / f"{title}.png")
+        plt.savefig(save_dir / f"{title}.png", dpi=500)
     if show:
         plt.show()
+    plt.close()
 
     A = _bundle_adjustment_sparsity(
         len(cameras_copy),
@@ -154,9 +155,10 @@ def perform_BA(points3D, cameras, colors, show, save, save_dir):
     plt.ylabel("residual")
     plt.legend()
     if save and save_dir is not None:
-        plt.savefig(save_dir / f"{title}.png")
+        plt.savefig(save_dir / f"{title}.png", dpi=500)
     if show:
         plt.show()
+    plt.close()
 
     # 仅更新有效的点云和相机参数
     # 过滤掉过远或过近的点
@@ -183,5 +185,8 @@ def perform_BA(points3D, cameras, colors, show, save, save_dir):
         camera.R = R
         camera.t = t
         idx += 6
+
+    # 将第一个相机添加到相机列表
+    cameras_copy.insert(0, cameras[0])
 
     return optimized_points3D, cameras_copy, colors_copy[valid_points_mask]

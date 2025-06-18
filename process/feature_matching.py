@@ -45,7 +45,7 @@ def match_features(features1, features2):
     return good_matches
 
 
-def match_all_paires(features_list):
+def match_all_pairs(features_list):
     """
     对特征向量列表中的所有图像对进行匹配。
 

@@ -26,10 +26,18 @@ def main():
     data_path = Path(path_config["data_path"])
     output_path = Path(path_config["output_path"])
     img_path = Path(path_config["img_path"])
+    img_path_pcd = img_path / "PCD"
+    pcd_visual_without_cameras_param_path = Path(
+        path_config["pcd_visual_without_cameras_param_path"]
+    )
+    pcd_visual_with_cameras_param_path = Path(
+        path_config["pcd_visual_with_cameras_param_path"]
+    )
 
     # 创建输出目录
     output_path.mkdir(parents=True, exist_ok=True)
     img_path.mkdir(parents=True, exist_ok=True)
+    img_path_pcd.mkdir(parents=True, exist_ok=True)
 
     # ===============================================================
     # Step0: 导入图像及相机参数
@@ -46,7 +54,7 @@ def main():
 
     # 测试：展示图像和相机参数
     for i, img in enumerate(images[:2]):
-        visulize_img(
+        visualize_img(
             img,
             f"Image {i+1}",
             show=step_config["show_img"],
@@ -69,13 +77,14 @@ def main():
         extract_features,
         fe.after_load,
     )(images)
+    print(f"平均特征点数量: {np.mean([len(f[0]) for f in features]):.2f}")
 
     # 测试：展示图像特征点
     for i, img in enumerate(images[:2]):
         img_with_features = cv2.drawKeypoints(
             img, features[i][0], None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
         )
-        visulize_img(
+        visualize_img(
             img_with_features,
             f"Features in Image {i}",
             show=step_config["show_img"],
@@ -93,9 +102,10 @@ def main():
     all_matches = cache_wrapper(
         step_config["cache_key"],
         step_config["regenerate"],
-        match_all_paires,
+        match_all_pairs,
         fm.after_load,
     )(features)
+    print(f"平均匹配点数量: {np.mean([len(m) for m in all_matches.values()]):.2f}")
 
     # 测试：展示匹配结果
     img1_indx = 0
@@ -107,14 +117,13 @@ def main():
         features[img1_indx],
         features[img2_indx],
     )
-    visulize_img(
+    visualize_img(
         img_matches,
         f"Matches between Image {img1_indx} and Image {img2_indx}",
         show=step_config["show_img"],
         save=step_config["save_img"],
         save_dir=img_path,
     )
-    print(f"匹配点对数量: {len(all_matches[(img1_indx, img2_indx)])}")
 
     # ===============================================================
     # Step3: 场景初始化 (对极几何)
@@ -142,8 +151,19 @@ def main():
     )
 
     # 测试：展示初始化结果
-    if step_config["visulize"]:
-        visualize_camera_pose_and_pcd([cameras[1].get_pose()], points3D, colors3D)
+    print(f"初始化点云数量: {len(points3D)}")
+    camera_poses_init = [cameras[1].get_pose()]
+    visualize_camera_pose_and_pcd(
+        camera_poses_init,
+        points3D,
+        colors3D,
+        pcd_visual_without_cameras_param_path,
+        pcd_visual_with_cameras_param_path,
+        show=step_config["show_pcd"],
+        save=step_config["save_pcd"],
+        title="1_Init_Recon_Result",
+        save_dir=img_path_pcd,
+    )
 
     # ===============================================================
     # Step4: 场景重建 (PnP/对极几何)
@@ -159,9 +179,18 @@ def main():
     print(f"点云数量: {len(points3D_pnp)}")
 
     # 测试：展示重建结果
-    if step_config["visulize"]:
-        camera_poses_pnp = [camera.get_pose() for camera in cameras_pnp[1:]]
-        visualize_camera_pose_and_pcd(camera_poses_pnp, points3D_pnp, colors3D_pnp)
+    camera_poses_pnp = [camera.get_pose() for camera in cameras_pnp[1:]]
+    visualize_camera_pose_and_pcd(
+        camera_poses_pnp,
+        points3D_pnp,
+        colors3D_pnp,
+        pcd_visual_without_cameras_param_path,
+        pcd_visual_with_cameras_param_path,
+        show=step_config["show_pcd"],
+        save=step_config["save_pcd"],
+        title="2_PnP_Result",
+        save_dir=img_path_pcd,
+    )
 
     # ===============================================================
     # Step5: 场景优化 (Bundle Adjustment)
@@ -180,7 +209,7 @@ def main():
         perform_BA,
     )(
         points3D=points3D_pnp,
-        cameras=cameras_pnp[1:],
+        cameras=cameras_pnp,
         colors=colors3D_pnp,
         show=step_config["show_img"],
         save=step_config["save_img"],
@@ -195,13 +224,30 @@ def main():
     )
 
     # 测试：展示优化结果
-    if step_config["visulize"]:
-        optimized_camera_poses = [camera.get_pose() for camera in optimized_cameras[1:]]
-        visualize_camera_pose_and_pcd(
-            optimized_camera_poses,
-            optimized_points3D,
-            optimized_colors,
-        )
+    # for i in range(1, len(optimized_cameras)):
+    #     optimized_camera_poses = [optimized_cameras[i].get_pose()]
+    #     visualize_camera_pose_and_pcd(
+    #         optimized_camera_poses,
+    #         optimized_points3D,
+    #         optimized_colors,
+    #         camera_param_path,
+    #         show=step_config["show_pcd"],
+    #         save=step_config["save_pcd"],
+    #         title=f"3_BA_Result_{i}",
+    #         save_dir=img_path_pcd,
+    #     )
+    optimized_camera_poses = [camera.get_pose() for camera in optimized_cameras[1:]]
+    visualize_camera_pose_and_pcd(
+        optimized_camera_poses,
+        optimized_points3D,
+        optimized_colors,
+        pcd_visual_without_cameras_param_path,
+        pcd_visual_with_cameras_param_path,
+        show=step_config["show_pcd"],
+        save=step_config["save_pcd"],
+        title="3_BA_Result",
+        save_dir=img_path_pcd,
+    )
 
     # 保存重建的点云和相机坐标系
     pcd = create_point_cloud(optimized_points3D, optimized_colors)

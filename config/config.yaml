@@ -2,6 +2,8 @@ path:
   data_path: data
   img_path: output/images
   output_path: output
+  pcd_visual_without_cameras_param_path: config/pcd_visualize_param_without_cameras.json
+  pcd_visual_with_cameras_param_path: config/pcd_visualize_param_with_cameras.json
 
 spec_config:
   # 重建场景方法：["pnp", "epipolar"]
@@ -31,17 +33,20 @@ steps:
   # Step3: 场景初始化
   - regenerate: false
     cache_key: init_recon
-    visulize: false
+    show_pcd: false
+    save_pcd: true
     desc: "场景初始化 (对极几何)"
   # Step4: 场景重建
   - regenerate: false
     cache_key: recon
-    visulize: false
+    show_pcd: false
+    save_pcd: true
     desc: "场景重建 (PnP/对极几何)"
   # Step5: BA优化
   - regenerate: false
     cache_key: ba_optimization
-    visulize: true
     show_img: false
     save_img: true
+    show_pcd: false
+    save_pcd: true
     desc: "场景优化 (Bundle Adjustment)"

@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import cv2
 
 
-def visulize_img(img, title=None, show=True, save=False, save_dir=None):
-    """使用matplotlib显示或保存cv2图片"""
-    plt.figure()
+def visualize_img(img, title=None, show=True, save=False, save_dir=None, dpi=500):
+    """使用matplotlib显示或保存cv2图片，默认高分辨率输出"""
+    plt.figure(dpi=dpi)
     if title is not None:
         plt.title(title)
     img_convert = img.copy()
@@ -18,6 +18,12 @@ def visulize_img(img, title=None, show=True, save=False, save_dir=None):
     plt.imshow(img_convert)
     plt.axis("off")
     if save and save_dir is not None:
-        plt.savefig(save_dir / f"{title}.png")
+        plt.savefig(
+            save_dir / f"{title or 'image'}.png",
+            dpi=dpi,
+            bbox_inches="tight",
+            pad_inches=0,
+        )
     if show:
         plt.show()
+    plt.close()
