@@ -1,0 +1,47 @@
+path:
+  data_path: data
+  img_path: output/images
+  output_path: output
+
+spec_config:
+  # 重建场景方法：["pnp", "epipolar"]
+  recon_method: "pnp"
+  # 是否跳过BA优化
+  skip_ba: false
+
+steps:
+  # Step0: 导入图像及相机参数
+  - regenerate: false
+    cache_key: images_and_intrinsics
+    show_img: false
+    save_img: true
+    desc: "导入图像及相机参数"
+  # Step1: SIFT特征提取
+  - regenerate: false
+    cache_key: sift
+    show_img: false
+    save_img: true
+    desc: "SIFT特征提取"
+  # Step2: 特征匹配
+  - regenerate: false
+    cache_key: matches
+    show_img: false
+    save_img: true
+    desc: "特征匹配"
+  # Step3: 场景初始化
+  - regenerate: false
+    cache_key: init_recon
+    visulize: false
+    desc: "场景初始化 (对极几何)"
+  # Step4: 场景重建
+  - regenerate: false
+    cache_key: recon
+    visulize: false
+    desc: "场景重建 (PnP/对极几何)"
+  # Step5: BA优化
+  - regenerate: false
+    cache_key: ba_optimization
+    visulize: true
+    show_img: false
+    save_img: true
+    desc: "场景优化 (Bundle Adjustment)"

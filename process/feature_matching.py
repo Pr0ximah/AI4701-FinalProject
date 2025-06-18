@@ -55,24 +55,13 @@ def match_all_paires(features_list):
     返回:
         dict: 包含所有图像对的匹配结果，键为图像对的索引元组 (i, j)，值为匹配结果列表。
     """
-    # image_pairs = list(combinations(range(len(features_list)), 2))
-    # all_matches = {}
-    # for i, j in tqdm(image_pairs):
-    #     matches = match_features(features_list[i], features_list[j])
-    #     matches = convert_matches(matches)  # 转换为可序列化格式
-    #     # 存储匹配结果
-    #     all_matches[(i, j)] = matches
-    # return all_matches
+    image_pairs = list(combinations(range(len(features_list)), 2))
     all_matches = {}
-    for i in tqdm(range(len(features_list) - 1)):
-        j = i + 1
+    for i, j in tqdm(image_pairs):
         matches = match_features(features_list[i], features_list[j])
         matches = convert_matches(matches)  # 转换为可序列化格式
+        # 存储匹配结果
         all_matches[(i, j)] = matches
-    for i in tqdm(range(len(features_list))):
-        matches = match_features(features_list[0], features_list[i])
-        matches = convert_matches(matches)  # 转换为可序列化格式
-        all_matches[(0, i)] = matches
     return all_matches
 
 
