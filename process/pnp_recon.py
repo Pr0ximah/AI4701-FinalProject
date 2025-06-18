@@ -86,6 +86,28 @@ def extend_points_cloud(points3D, cameras, features, matches, images=None):
         points1 = np.float32([feature1[0][i].pt for i in index1])
         points2 = np.float32([feature2[0][i].pt for i in index2])
 
+        # 基线角度过滤（剔除视线夹角过小的匹配）
+        invK1 = np.linalg.inv(camera1.camera_intrinsic)
+        invK2 = np.linalg.inv(camera2.camera_intrinsic)
+        thresh_deg = 1.0  # 最小角度阈值（度）
+        mask = []
+        for p1, p2 in zip(points1, points2):
+            # 在相机坐标系下的 bearing vector
+            b1 = invK1 @ np.array([p1[0], p1[1], 1.0])
+            b2 = invK2 @ np.array([p2[0], p2[1], 1.0])
+            # 转到世界坐标系
+            d1 = camera1.R.T @ b1
+            d2 = camera2.R.T @ b2
+            # 计算夹角
+            cosang = np.dot(d1, d2) / (np.linalg.norm(d1) * np.linalg.norm(d2))
+            ang = np.degrees(np.arccos(np.clip(cosang, -1.0, 1.0)))
+            mask.append(ang >= thresh_deg)
+        mask = np.array(mask, dtype=bool)
+        points1 = points1[mask]
+        points2 = points2[mask]
+        index1 = index1[mask]
+        index2 = index2[mask]
+
         # 生成新的三维点
         points4D = cv2.triangulatePoints(
             camera1.camera_intrinsic @ camera1.get_extrinsic(),
@@ -147,3 +169,12 @@ def extend_points_cloud(points3D, cameras, features, matches, images=None):
             colors_extended = np.vstack((colors_extended, colors_new))
 
     return points3D_extended, colors_extended
+
+
+def pnp_recon(points3D, features, cameras, matches, images=None):
+    # 执行PnP算法来估计相机姿态
+    cameras_pnp = perform_PnP(points3D, features, cameras, matches)
+    points3D_pnp, colors3D_pnp = extend_points_cloud(
+        points3D, cameras_pnp, features, matches, images
+    )
+    return cameras_pnp, points3D_pnp, colors3D_pnp
