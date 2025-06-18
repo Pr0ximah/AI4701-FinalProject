@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import cv2
 
 
-def plt_show(img, title=None):
-    """使用matplotlib显示cv2图片"""
+def visulize_img(img, title=None, show=True, save=False, save_dir=None):
+    """使用matplotlib显示或保存cv2图片"""
     plt.figure()
     if title is not None:
         plt.title(title)
@@ -17,4 +17,7 @@ def plt_show(img, title=None):
         raise ValueError("Unsupported image format")
     plt.imshow(img_convert)
     plt.axis("off")
-    plt.show()
+    if save and save_dir is not None:
+        plt.savefig(save_dir / f"{title}.png")
+    if show:
+        plt.show()

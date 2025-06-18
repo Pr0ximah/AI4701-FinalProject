@@ -43,3 +43,15 @@ class Camera:
             numpy.ndarray: 过滤后的关键点，形状为(N, 2), 其中N是关键点的数量。
         """
         return self.keypoints[self.matched_indices_2D]
+
+    def get_flattened_extrinsic(self):
+        """
+        获取相机外参的扁平化形式。
+
+        返回:
+            numpy.ndarray: 扁平化的外参矩阵，形状为(16,)，包含旋转和平移信息。
+        """
+        extrinsic = self.get_extrinsic()
+        extrinsic_mod = np.vstack((extrinsic, np.array([[0, 0, 0, 1]])))
+        flattened_extrinsic = extrinsic_mod.flatten()
+        return flattened_extrinsic

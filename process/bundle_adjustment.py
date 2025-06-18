@@ -84,7 +84,7 @@ def _bundle_adjustment_sparsity(n_cameras, n_points, camera_indices, point_indic
     return A
 
 
-def perform_BA(points3D, cameras, colors):
+def perform_BA(points3D, cameras, colors, show, save, save_dir):
     points3D_copy = points3D.copy()
     cameras_copy = cameras.copy()
     colors_copy = colors.copy()
@@ -110,12 +110,16 @@ def perform_BA(points3D, cameras, colors):
         initial_params[:camera_params_cnt],
         cameras_copy,
     )
+    title = "initial_residuals_distribution"
     plt.plot(f0, "o", markersize=1, label="initial residuals")
-    plt.title("initial residuals distribution")
+    plt.title(title)
     plt.xlabel("index")
     plt.ylabel("residual")
     plt.legend()
-    plt.show()
+    if save and save_dir is not None:
+        plt.savefig(save_dir / f"{title}.png")
+    if show:
+        plt.show()
 
     A = _bundle_adjustment_sparsity(
         len(cameras_copy),
@@ -143,12 +147,16 @@ def perform_BA(points3D, cameras, colors):
     f1 = _residuals(
         result.x[camera_params_cnt:], result.x[:camera_params_cnt], cameras_copy
     )
+    title = "optimized_residuals_distribution"
     plt.plot(f1, "o", markersize=1, label="optimized residuals")
-    plt.title("optimized residuals distribution")
+    plt.title(title)
     plt.xlabel("index")
     plt.ylabel("residual")
     plt.legend()
-    plt.show()
+    if save and save_dir is not None:
+        plt.savefig(save_dir / f"{title}.png")
+    if show:
+        plt.show()
 
     # 仅更新有效的点云和相机参数
     # 过滤掉过远或过近的点

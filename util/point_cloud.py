@@ -58,6 +58,26 @@ def visualize_point_cloud(pcd, window_name="3D Point Cloud"):
     )
 
 
+def create_point_cloud(points3D, colors=None):
+    """
+    创建Open3D点云对象。
+
+    参数:
+        points3D (numpy.ndarray): 3D点云数据，形状为(N, 3)。
+        colors (numpy.ndarray, optional): 点云颜色数据，形状为(N, 3)，范围[0,1]。
+
+    返回:
+        Open3D点云对象。
+    """
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points3D)
+
+    if colors is not None:
+        pcd.colors = o3d.utility.Vector3dVector(colors)
+
+    return pcd
+
+
 def visualize_camera_pose_and_pcd(camera_poses, points3D, colors=None):
     """
     可视化相机和点云位姿。
