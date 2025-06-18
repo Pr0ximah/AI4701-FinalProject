@@ -55,13 +55,6 @@ def _residuals(points3D_params, camera_params, cameras):
         points2D = camera.get_filtered_keypoints()
         residuals = points2D - projected
 
-        # 计算残差的范数，用于过滤异常值
-        res_norms = np.sqrt(np.sum(residuals**2, axis=1))
-
-        # 仅保留合理范围内的残差
-        valid_indices = res_norms < 80.0  # 设置合理的阈值
-        residuals[~valid_indices] = 0  # 将无效点的残差设为0
-
         all_residuals.append(residuals.ravel())
 
     return np.concatenate(all_residuals).ravel()

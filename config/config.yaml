@@ -1,12 +1,13 @@
 path:
   data_path: data
-  img_path: output/images
+  img_path: images
   output_path: output
   pcd_visual_without_cameras_param_path: config/pcd_visualize_param_without_cameras.json
   pcd_visual_with_cameras_param_path: config/pcd_visualize_param_with_cameras.json
 
 spec_config:
   # 重建场景方法：["pnp", "epipolar"]
+  # recon_method: "epipolar"
   recon_method: "pnp"
   # 是否跳过BA优化
   skip_ba: false
@@ -43,7 +44,7 @@ steps:
     save_pcd: true
     desc: "场景重建 (PnP/对极几何)"
   # Step5: BA优化
-  - regenerate: false
+  - regenerate: true
     cache_key: ba_optimization
     show_img: false
     save_img: true

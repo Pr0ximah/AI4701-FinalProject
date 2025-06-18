@@ -32,16 +32,19 @@ AI4701-FinalProject/
 │   └── camera_intrinsic.txt    # 相机内参
 │
 ├── doc/
-│   ├── steps.png                # 项目流程图
-│   └── pcd.png                  # 点云可视化示例图
+│   ├── steps.png               # 项目流程图
+│   └── pcd.png                 # 点云可视化示例图
 │
 ├── output/
-│   ├── images/                 # 存放可视化结果图
-│   │   ├── PCD/
-│   │   │   └── ...             # 点云可视化结果
-│   │   └── ...                 # 其他可视化结果
-│   ├── extrinsics.txt          # 重建后的相机外参
-│   └── pcd.ply                 # 重建生成的点云
+│   ├── recon_*/                # 重建结果目录，可能有多个
+│   │   ├── images/             # 存放可视化结果图
+│   │   │   ├── PCD/
+│   │   │   │   └── ...         # 点云可视化结果
+│   │   │   └── ...             # 其他可视化结果
+│   │   ├── recon.yaml          # 本次重建的配置
+│   │   ├── extrinsics.txt      # 重建后的相机外参
+│   │   └── pcd.ply             # 重建生成的点云
+│   └── ...
 │
 ├── process/
 │   ├── __init__.py

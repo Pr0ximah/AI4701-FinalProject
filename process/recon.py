@@ -4,42 +4,38 @@ from tqdm import tqdm
 import numpy as np
 
 
-def perform_PnP(points3D, features, cameras, matches):
+def perform_pnp_recon(points3D, features, cameras, matches):
     cameras_mod = deepcopy(cameras)
-    for i in tqdm(range(len(cameras_mod) - 2)):
+    for i in tqdm(range(len(cameras_mod) - 2), desc="PnP Camera Pose Estimation"):
         camera1_indx = 0
         camera2_indx = i + 2
 
         camera1 = cameras_mod[camera1_indx]
         camera2 = cameras_mod[camera2_indx]
-        feature1 = features[camera1_indx]
         feature2 = features[camera2_indx]
 
-        # 只考虑相机02/12之间的匹配
-        match12 = matches[(camera1_indx, camera2_indx)]
-
-        # 先考虑PnP的匹配
-        index1 = np.array([m.queryIdx for m in match12])
-        index2 = np.array([m.trainIdx for m in match12])
+        match = matches[(camera1_indx, camera2_indx)]
+        index1 = np.array([m.queryIdx for m in match])
+        index2 = np.array([m.trainIdx for m in match])
         points2 = np.float32([feature2[0][i].pt for i in index2])
 
         # 记录特征点
         camera2.keypoints = np.array([p.pt for p in feature2[0]])
 
         # 寻找匹配点
-        valid_index_mask_2D_pnp = np.isin(index1, camera1.matched_indices_2D)
+        valid_index_mask_2D_recon = np.isin(index1, camera1.matched_indices_2D)
         valid_index_mask_3D_for_camera1 = np.isin(
-            camera1.matched_indices_2D, index1[valid_index_mask_2D_pnp]
+            camera1.matched_indices_2D, index1[valid_index_mask_2D_recon]
         )
-        valid_index_mask_3D_pnp = np.isin(
+        valid_index_mask_3D_recon = np.isin(
             np.arange(points3D.shape[0]),
             camera1.matched_indices_3D[valid_index_mask_3D_for_camera1],
         )
-        points2_filtered_pnp = points2[valid_index_mask_2D_pnp]
-        points3D_filtered_pnp = points3D[valid_index_mask_3D_pnp]
+        points2_filtered_recon = points2[valid_index_mask_2D_recon]
+        points3D_filtered_recon = points3D[valid_index_mask_3D_recon]
 
         # 更新相机的匹配索引
-        camera2.matched_indices_2D = index2[valid_index_mask_2D_pnp]
+        camera2.matched_indices_2D = index2[valid_index_mask_2D_recon]
         camera2.matched_indices_3D = camera1.matched_indices_3D[
             valid_index_mask_3D_for_camera1
         ]
@@ -47,8 +43,8 @@ def perform_PnP(points3D, features, cameras, matches):
         # 计算PnP
         distCoeffs = np.zeros((4, 1), dtype=np.float32)  # 假设无畸变
         success, rvec, tvec, inliers = cv2.solvePnPRansac(
-            points3D_filtered_pnp,
-            points2_filtered_pnp,
+            points3D_filtered_recon,
+            points2_filtered_recon,
             camera2.camera_intrinsic,
             distCoeffs,
         )
@@ -73,7 +69,7 @@ def extend_points_cloud(points3D, cameras, features, matches, images=None):
     if images is not None:
         colors_extended = np.ones((len(points3D_extended), 3)) * 0.5  # 默认灰色
 
-    for i in tqdm(range(len(cameras) - 2)):
+    for i in tqdm(range(len(cameras) - 2), desc="Extending 3D Points"):
         camera1_indx = i + 1
         camera2_indx = i + 2
         camera1 = cameras[camera1_indx]
@@ -171,10 +167,74 @@ def extend_points_cloud(points3D, cameras, features, matches, images=None):
     return points3D_extended, colors_extended
 
 
-def pnp_recon(points3D, features, cameras, matches, images=None):
-    # 执行PnP算法来估计相机姿态
-    cameras_pnp = perform_PnP(points3D, features, cameras, matches)
-    points3D_pnp, colors3D_pnp = extend_points_cloud(
-        points3D, cameras_pnp, features, matches, images
+def perform_epipolar_recon(features, cameras, matches):
+    cameras_mod = deepcopy(cameras)
+    for i in tqdm(range(len(cameras_mod) - 2), desc="Epipolar Camera Pose Estimation"):
+        camera1_indx = i + 1
+        camera2_indx = i + 2
+
+        camera1 = cameras_mod[camera1_indx]
+        camera2 = cameras_mod[camera2_indx]
+        feature1 = features[camera1_indx]
+        feature2 = features[camera2_indx]
+
+        match = matches[(camera1_indx, camera2_indx)]
+        index1 = np.array([m.queryIdx for m in match])
+        index2 = np.array([m.trainIdx for m in match])
+        points1 = np.float32([feature1[0][i].pt for i in index1])
+        points2 = np.float32([feature2[0][i].pt for i in index2])
+
+        # 记录特征点
+        camera2.keypoints = np.array([p.pt for p in feature2[0]])
+
+        # 寻找匹配点
+        valid_index_mask_2D_recon = np.isin(index1, camera1.matched_indices_2D)
+        valid_index_mask_3D_for_camera1 = np.isin(
+            camera1.matched_indices_2D, index1[valid_index_mask_2D_recon]
+        )
+
+        # 更新相机的匹配索引
+        camera2.matched_indices_2D = index2[valid_index_mask_2D_recon]
+        camera2.matched_indices_3D = camera1.matched_indices_3D[
+            valid_index_mask_3D_for_camera1
+        ]
+
+        # 计算对极几何
+        # 基础矩阵
+        F, _ = cv2.findFundamentalMat(points1, points2, cv2.FM_RANSAC)
+
+        # 本质矩阵
+        E = camera1.camera_intrinsic.T @ F @ camera1.camera_intrinsic
+
+        # 得到旋转/平移矩阵
+        _, R, t, _ = cv2.recoverPose(E, points1, points2, camera1.camera_intrinsic)
+
+        original_transform_matrix = np.vstack(
+            (np.hstack((R, t.reshape(3, 1))), np.array([[0, 0, 0, 1]]))
+        )
+        camera1_extrinsic = camera1.get_extrinsic()
+        camera1_transform_matrix = np.vstack(
+            (camera1_extrinsic, np.array([[0, 0, 0, 1]]))
+        )
+
+        # 计算相机2的外参
+        camera2_extrinsic = camera1_transform_matrix @ original_transform_matrix
+
+        # 更新相机位姿
+        camera2.R = camera2_extrinsic[:3, :3]
+        camera2.t = camera2_extrinsic[:3, 3].reshape(3, 1)
+
+    return cameras_mod
+
+
+def recon_all(recon_method, points3D, features, cameras, matches, images=None):
+    if recon_method == "epipolar":
+        # 执行对极几何算法来估计相机姿态
+        cameras_mod = perform_epipolar_recon(features, cameras, matches)
+    elif recon_method == "pnp":
+        # 执行PnP算法来估计相机姿态
+        cameras_mod = perform_pnp_recon(points3D, features, cameras, matches)
+    points3D_mod, colors3D_mod = extend_points_cloud(
+        points3D, cameras_mod, features, matches, images
     )
-    return cameras_pnp, points3D_pnp, colors3D_pnp
+    return cameras_mod, points3D_mod, colors3D_mod

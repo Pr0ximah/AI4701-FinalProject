@@ -51,6 +51,7 @@ def cache_wrapper(cache_key, regenerate_flag, func, after_load=None):
             return result
         else:
             loaded = dc.load(cache_key)
+            print(f"从缓存加载数据: {cache_key}")
             if after_load:
                 loaded = after_load(loaded)
             return loaded

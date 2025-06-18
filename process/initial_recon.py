@@ -1,8 +1,12 @@
 import cv2
+from copy import deepcopy
 import numpy as np
 
 
 def init_recon(features1, features2, camera1, camera2, match, img1, img2):
+    camera1_mod = deepcopy(camera1)
+    camera2_mod = deepcopy(camera2)
+
     # 提取匹配点
     index1 = np.array([m.queryIdx for m in match])
     index2 = np.array([m.trainIdx for m in match])
@@ -10,30 +14,30 @@ def init_recon(features1, features2, camera1, camera2, match, img1, img2):
     points2 = np.float32([features2[0][i].pt for i in index2])
 
     # 记录特征点
-    camera1.keypoints = np.array([p.pt for p in features1[0]])
-    camera2.keypoints = np.array([p.pt for p in features2[0]])
+    camera1_mod.keypoints = np.array([p.pt for p in features1[0]])
+    camera2_mod.keypoints = np.array([p.pt for p in features2[0]])
 
     # 基础矩阵
     F, _ = cv2.findFundamentalMat(points1, points2, cv2.FM_RANSAC)
     print(f"基础矩阵:\n{F}\n")
 
     # 本质矩阵
-    E = camera1.camera_intrinsic.T @ F @ camera1.camera_intrinsic
+    E = camera1_mod.camera_intrinsic.T @ F @ camera1_mod.camera_intrinsic
     print(f"本质矩阵:\n{E}\n")
 
     # 得到旋转/平移矩阵
-    _, R, t, _ = cv2.recoverPose(E, points1, points2, camera1.camera_intrinsic)
+    _, R, t, _ = cv2.recoverPose(E, points1, points2, camera1_mod.camera_intrinsic)
     print(f"旋转矩阵:\n{R}\n")
     print(f"平移向量:\n{t}\n")
 
     # 更新相机位姿
-    camera2.R = R
-    camera2.t = t
+    camera2_mod.R = R
+    camera2_mod.t = t
 
     # 三角化生成点云
     points4D = cv2.triangulatePoints(
-        camera1.camera_intrinsic @ camera1.get_extrinsic(),
-        camera1.camera_intrinsic @ camera2.get_extrinsic(),
+        camera1_mod.camera_intrinsic @ camera1_mod.get_extrinsic(),
+        camera1_mod.camera_intrinsic @ camera2_mod.get_extrinsic(),
         points1.T,
         points2.T,
     )
@@ -61,9 +65,9 @@ def init_recon(features1, features2, camera1, camera2, match, img1, img2):
                 colors[i] = [0.5, 0.5, 0.5]  # 默认灰色
 
     # 记录场景中有效点的索引
-    camera1.matched_indices_3D = np.arange(len(points3D))
-    camera2.matched_indices_3D = np.arange(len(points3D))
-    camera1.matched_indices_2D = index1
-    camera2.matched_indices_2D = index2
+    camera1_mod.matched_indices_3D = np.arange(len(points3D))
+    camera2_mod.matched_indices_3D = np.arange(len(points3D))
+    camera1_mod.matched_indices_2D = index1
+    camera2_mod.matched_indices_2D = index2
 
-    return points3D, colors
+    return points3D, colors, camera1_mod, camera2_mod
