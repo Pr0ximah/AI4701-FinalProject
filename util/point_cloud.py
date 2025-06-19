@@ -26,7 +26,7 @@ def save_point_cloud(pcd, filename):
         filename (str): 保存的文件名。
     """
     o3d.io.write_point_cloud(filename, pcd)
-    print(f"点云已保存到 {filename}")
+    # print(f"点云已保存到 {filename}")
 
 
 def load_point_cloud(filename):
@@ -40,7 +40,7 @@ def load_point_cloud(filename):
         Open3D点云对象。
     """
     pcd = o3d.io.read_point_cloud(filename)
-    print(f"点云已从 {filename} 加载")
+    # print(f"点云已从 {filename} 加载")
     return pcd
 
 
