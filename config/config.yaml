@@ -14,7 +14,7 @@ spec_config:
   # 点云深度过滤阈值
   max_depth: 60.0
   # 取前多少张图像进行重建 (-1代表取全部图像)
-  num_images: 50
+  num_images: -1
 
 steps:
   # Step0: 导入图像及相机参数
