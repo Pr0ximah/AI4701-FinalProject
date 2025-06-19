@@ -10,7 +10,11 @@ spec_config:
   # recon_method: "epipolar"
   recon_method: "pnp"
   # 是否跳过BA优化
-  skip_ba: false
+  skip_BA: false
+  # 点云深度过滤阈值
+  max_depth: 60.0
+  # 取前多少张图像进行重建 (-1代表取全部图像)
+  num_images: 50
 
 steps:
   # Step0: 导入图像及相机参数
@@ -37,17 +41,11 @@ steps:
     show_pcd: false
     save_pcd: true
     desc: "场景初始化 (对极几何)"
-  # Step4: 场景重建
-  - regenerate: false
-    cache_key: recon
-    show_pcd: false
-    save_pcd: true
-    desc: "场景重建 (PnP/对极几何)"
-  # Step5: BA优化
+  # Step4: 场景重建 + BA优化
   - regenerate: true
-    cache_key: ba_optimization
+    cache_key: recon
     show_img: false
     save_img: true
     show_pcd: false
     save_pcd: true
-    desc: "场景优化 (Bundle Adjustment)"
+    desc: "场景重建 (PnP/对极几何) + BA优化"

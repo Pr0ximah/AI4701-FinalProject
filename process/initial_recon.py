@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 
 
-def init_recon(features1, features2, camera1, camera2, match, img1, img2):
+def init_recon(features1, features2, camera1, camera2, match, img1, img2, max_depth):
     camera1_mod = deepcopy(camera1)
     camera2_mod = deepcopy(camera2)
 
@@ -44,7 +44,7 @@ def init_recon(features1, features2, camera1, camera2, match, img1, img2):
     points3D = points4D[:3] / points4D[3]  # 转换为非齐次坐标
 
     # 过滤掉无效的点
-    valid_indices = np.where(((points3D[2] > 0) & (points3D[2] < 60)))[0]
+    valid_indices = np.where(((points3D[2] > 0) & (points3D[2] < max_depth)))[0]
     points3D = points3D.T  # 转置为 Nx3 的格式
     points3D = points3D[valid_indices]
     index1 = index1[valid_indices]

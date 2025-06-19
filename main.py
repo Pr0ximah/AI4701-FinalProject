@@ -45,10 +45,18 @@ def main():
     with open(output_path / "config.yaml", "w", encoding="utf-8") as f:
         yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
 
+    # 检查num_images配置
+    assert (
+        spec_config["num_images"] >= 5 or spec_config["num_images"] == -1
+    ), "num_images配置必须 >=5 或 =-1"
+
     # 打印输出信息
     print(f"=" * 40)
     print(f"AI4701 室内场景三维重建")
     print(f"输出路径: {output_path}")
+    print(
+        f"重建照片数量: {spec_config['num_images'] if spec_config['num_images'] > 0 else '全部'}"
+    )
     print(f"=" * 40)
 
     try:
@@ -64,6 +72,17 @@ def main():
             step_config["regenerate"],
             load_images_and_camera_intrinsic,
         )(data_path)
+
+        # 初始化图像mask
+        images_mask = np.ones(len(images), dtype=bool)
+        if spec_config["num_images"] > 0:
+            images_mask[: spec_config["num_images"]] = True
+            images_mask[spec_config["num_images"] :] = False
+        elif spec_config["num_images"] == -1:
+            images_mask[:] = True
+
+        # 应用mask过滤图像
+        images = [img for i, img in enumerate(images) if images_mask[i]]
 
         # 测试：展示图像和相机参数
         for i, img in enumerate(images[:2]):
@@ -164,6 +183,7 @@ def main():
             match=all_matches[(0, 1)],
             img1=images[0],
             img2=images[1],
+            max_depth=spec_config["max_depth"],
         )
 
         # 测试：展示初始化结果
@@ -182,7 +202,7 @@ def main():
         )
 
         # ===============================================================
-        # Step4: 场景重建 (PnP/对极几何)
+        # Step4: 场景重建 (PnP/对极几何) + Bundle Adjustment优化
         # ===============================================================
         step_config = next(steps_config)
         recon_method = spec_config["recon_method"]
@@ -190,10 +210,21 @@ def main():
         print(f"\n处理: {step_config['desc']}")
         print(f"重建方法: {recon_method}")
 
-        # 执行PnP或对极几何算法来估计相机姿态
+        if spec_config["skip_BA"]:
+            print("跳过BA优化")
+        # 执行PnP或对极几何算法来重建场景，可选是否进行BA
         cameras_recon_all, points3D_recon_all, colors3D_recon_all = cache_wrapper(
             cache_key, step_config["regenerate"], recon_all
-        )(recon_method, points3D, features, cameras, all_matches, images)
+        )(
+            recon_method,
+            points3D,
+            features,
+            cameras,
+            all_matches,
+            spec_config["max_depth"],
+            images,
+            spec_config["skip_BA"],
+        )
 
         print(f"点云数量: {len(points3D_recon_all)}")
 
@@ -211,50 +242,11 @@ def main():
             save_dir=img_path_pcd,
         )
 
-        # ===============================================================
-        # Step5: 场景优化 (Bundle Adjustment)
-        # ===============================================================
-        step_config = next(steps_config)
-        print(f"\n处理: {step_config['desc']}")
-
-        if spec_config["skip_ba"]:
-            print("跳过Bundle Adjustment优化")
-            return
-
-        # 执行BA算法来优化相机姿态和点云
-        optimized_points3D, optimized_cameras, optimized_colors = cache_wrapper(
-            step_config["cache_key"],
-            step_config["regenerate"],
-            perform_BA,
-        )(
-            points3D=points3D_recon_all,
-            cameras=cameras_recon_all,
-            colors=colors3D_recon_all,
-            show=step_config["show_img"],
-            save=step_config["save_img"],
-            save_dir=img_path,
-        )
-        print(f"优化后点云数量: {optimized_points3D.shape[0]}")
-
-        # 测试：展示优化结果
-        optimized_camera_poses = [camera.get_pose() for camera in optimized_cameras[1:]]
-        visualize_camera_pose_and_pcd(
-            optimized_camera_poses,
-            optimized_points3D,
-            optimized_colors,
-            pcd_visual_without_cameras_param_path,
-            pcd_visual_with_cameras_param_path,
-            show=step_config["show_pcd"],
-            save=step_config["save_pcd"],
-            title="3_BA_Result",
-            save_dir=img_path_pcd,
-        )
-
         # 保存重建的点云和相机坐标系
-        pcd = create_point_cloud(optimized_points3D, optimized_colors)
+        pcd = create_point_cloud(points3D_recon_all, colors3D_recon_all)
         save_point_cloud(pcd, output_path / "pcd.ply")
         extrinsic_matrices_list = [
-            camera.get_flattened_extrinsic() for camera in optimized_cameras
+            camera.get_flattened_extrinsic() for camera in cameras_recon_all
         ]
         np.savetxt(output_path / "extrinsics.txt", np.array(extrinsic_matrices_list))
     except Exception as e:

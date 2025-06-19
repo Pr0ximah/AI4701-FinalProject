@@ -77,7 +77,7 @@ def _bundle_adjustment_sparsity(n_cameras, n_points, camera_indices, point_indic
     return A
 
 
-def perform_BA(points3D, cameras, colors, show, save, save_dir):
+def perform_BA(points3D, cameras, colors):
     points3D_copy = points3D.copy()
     cameras_copy = cameras.copy()[1:]  # 排除第一个相机
     colors_copy = colors.copy()
@@ -97,29 +97,21 @@ def perform_BA(points3D, cameras, colors, show, save, save_dir):
     # 初始参数
     initial_params = np.hstack((camera_params, points3D_params))
 
-    # 初始残差
-    f0 = _residuals(
-        initial_params[camera_params_cnt:],
-        initial_params[:camera_params_cnt],
-        cameras_copy,
-    )
-    title = "initial_residuals_distribution"
-    plt.plot(f0, "o", markersize=1, label="initial residuals")
-    plt.title(title)
-    plt.xlabel("index")
-    plt.ylabel("residual")
-    plt.legend()
-    if save and save_dir is not None:
-        plt.savefig(save_dir / f"{title}.png", dpi=500)
-    if show:
-        plt.show()
-    plt.close()
+    camera_indices = []
+    points_indices = []
+    for camera in cameras_copy:
+        points_indices.extend(camera.matched_indices_3D)
+        camera_indices.extend(
+            [cameras_copy.index(camera)] * len(camera.matched_indices_3D)
+        )
+    camera_indices = np.array(camera_indices, dtype=int)
+    points_indices = np.array(points_indices, dtype=int)
 
     A = _bundle_adjustment_sparsity(
         len(cameras_copy),
         points3D_copy.shape[0],
-        np.concatenate([camera.matched_indices_2D for camera in cameras_copy]),
-        np.concatenate([camera.matched_indices_3D for camera in cameras_copy]),
+        camera_indices,
+        points_indices,
     )
 
     # 执行最小二乘优化
@@ -136,22 +128,6 @@ def perform_BA(points3D, cameras, colors, show, save, save_dir):
         max_nfev=50,
         verbose=2,
     )
-
-    # 显示优化后的残差分布
-    f1 = _residuals(
-        result.x[camera_params_cnt:], result.x[:camera_params_cnt], cameras_copy
-    )
-    title = "optimized_residuals_distribution"
-    plt.plot(f1, "o", markersize=1, label="optimized residuals")
-    plt.title(title)
-    plt.xlabel("index")
-    plt.ylabel("residual")
-    plt.legend()
-    if save and save_dir is not None:
-        plt.savefig(save_dir / f"{title}.png", dpi=500)
-    if show:
-        plt.show()
-    plt.close()
 
     # 仅更新有效的点云和相机参数
     # 过滤掉过远或过近的点
@@ -170,8 +146,7 @@ def perform_BA(points3D, cameras, colors, show, save, save_dir):
         R = cv2.Rodrigues(result.x[idx : idx + 3])[0]
         t = result.x[idx + 3 : idx + 6].reshape(3, 1)
 
-        # 可以添加一些约束，例如保持相机的上向量
-        # 确保旋转矩阵是有效的
+        # 约束: 保持相机的上向量
         U, _, Vt = np.linalg.svd(R)
         R = U @ Vt
 
